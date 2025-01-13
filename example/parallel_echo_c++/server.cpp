@@ -42,8 +42,9 @@ public:
         brpc::Controller* cntl =
             static_cast<brpc::Controller*>(cntl_base);
 
+        static int log_id = 0;
         // Echo request and its attachment
-        response->set_value(request->value());
+        response->set_value(log_id++);
         if (FLAGS_echo_attachment) {
             cntl->response_attachment().append(cntl->request_attachment());
         }

@@ -17,6 +17,7 @@
 
 // A client sending requests to server by multiple threads.
 
+#include <chrono>
 #include <gflags/gflags.h>
 #include <bthread/bthread.h>
 #include <butil/logging.h>
@@ -25,9 +26,9 @@
 #include "echo.pb.h"
 #include <bvar/bvar.h>
 
-DEFINE_int32(thread_num, 50, "Number of threads to send requests");
+DEFINE_int32(thread_num, 2, "Number of threads to send requests");
 DEFINE_bool(use_bthread, false, "Use bthread to send requests");
-DEFINE_int32(attachment_size, 0, "Carry so many byte attachment along with requests");
+DEFINE_int32(attachment_size, 10, "Carry so many byte attachment along with requests");
 DEFINE_int32(request_size, 16, "Bytes of each request");
 DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
 DEFINE_string(connection_type, "", "Connection type. Available values: single, pooled, short");
@@ -45,6 +46,7 @@ std::string g_attachment;
 bvar::LatencyRecorder g_latency_recorder("client");
 bvar::Adder<int> g_error_count("client_error_count");
 
+using std_clock = std::chrono::high_resolution_clock;
 static void* sender(void* arg) {
     // Normally, you should not call a Channel directly, but instead construct
     // a stub Service wrapping it. stub can be shared by all threads as well.
@@ -66,9 +68,20 @@ static void* sender(void* arg) {
 
         // Because `done'(last parameter) is NULL, this function waits until
         // the response comes back or error occurs(including timedout).
+        auto start = {std_clock::now()};
         stub.Echo(&cntl, &request, &response, NULL);
+        auto end = {std_clock::now()};
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        std::cout << "\nElapsed time: ";
+        std::cout << elapsed_seconds.count() << "s\n";
         if (!cntl.Failed()) {
-            g_latency_recorder << cntl.latency_us();
+            g_latency_recorder << cntl.latency_us();        
+            std::cout << "Received response from " << cntl.remote_side()
+                << " to " << cntl.local_side()
+                << ": " << response.message() << " (attached="
+                << cntl.response_attachment() << ")"
+                << " latency=" << cntl.latency_us() << "us\n";  
+            bthread_usleep(5000000);     
         } else {
             g_error_count << 1; 
             CHECK(brpc::IsAskedToQuit() || !FLAGS_dont_fail)
@@ -142,8 +155,8 @@ int main(int argc, char* argv[]) {
 
     while (!brpc::IsAskedToQuit()) {
         sleep(1);
-        LOG(INFO) << "Sending EchoRequest at qps=" << g_latency_recorder.qps(1)
-                  << " latency=" << g_latency_recorder.latency(1);
+        // LOG(INFO) << "Sending EchoRequest at qps=" << g_latency_recorder.qps(1)
+        //           << " latency=" << g_latency_recorder.latency(1);
     }
 
     LOG(INFO) << "EchoClient is going to quit";

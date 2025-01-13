@@ -27,11 +27,11 @@
 #include <brpc/server.h>
 #include "echo.pb.h"
 
-DEFINE_int32(thread_num, 50, "Number of threads to send requests");
-DEFINE_int32(channel_num, 3, "Number of sub channels");
+DEFINE_int32(thread_num, 1, "Number of threads to send requests");
+DEFINE_int32(channel_num, 2, "Number of sub channels");
 DEFINE_bool(same_channel, false, "Add the same sub channel multiple times");
 DEFINE_bool(use_bthread, false, "Use bthread to send requests");
-DEFINE_int32(attachment_size, 0, "Carry so many byte attachment along with requests");
+DEFINE_int32(attachment_size, 10, "Carry so many byte attachment along with requests");
 DEFINE_int32(request_size, 16, "Bytes of each request");
 DEFINE_string(connection_type, "", "Connection type. Available values: single, pooled, short");
 DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
@@ -76,8 +76,13 @@ static void* sender(void* arg) {
             for (int i = 0; i < cntl.sub_count(); ++i) {
                 if (cntl.sub(i) && !cntl.sub(i)->Failed()) {
                     g_sub_channel_latency[i] << cntl.sub(i)->latency_us();
-                }
+                            LOG(INFO) << "Received response from " << cntl.remote_side()
+                << " to " << cntl.sub(i)->local_side()
+                << ": " << response.value() << " (attached="
+                << cntl.sub(i)->response_attachment() << ")"
+                << " latency=" << cntl.latency_us() << "us";}
             }
+            bthread_usleep(500000);
         } else {
             g_error_count << 1;
             CHECK(brpc::IsAskedToQuit() || !FLAGS_dont_fail)
