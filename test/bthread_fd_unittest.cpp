@@ -444,69 +444,41 @@ void* close_the_fd(void* arg) {
     return NULL;
 }
 
-void *bthread_invalid_epoll_events(void *) {
+TEST(FDTest, invalid_epoll_events) {
     errno = 0;
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 #if defined(OS_LINUX)
-    CHECK_EQ(-1, bthread_fd_wait(-1, EPOLLIN));
+    ASSERT_EQ(-1, bthread_fd_wait(-1, EPOLLIN));
 #elif defined(OS_MACOSX)
     ASSERT_EQ(-1, bthread_fd_wait(-1, EVFILT_READ));
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 #endif
-std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-CHECK_EQ(EINVAL, errno);
+    ASSERT_EQ(EINVAL, errno);
     errno = 0;
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
 #if defined(OS_LINUX)
-CHECK_EQ(-1, bthread_fd_timedwait(-1, EPOLLIN, NULL));
+    ASSERT_EQ(-1, bthread_fd_timedwait(-1, EPOLLIN, NULL));
 #elif defined(OS_MACOSX)
-CHECK_EQ(-1, bthread_fd_timedwait(-1, EVFILT_READ, NULL));
+    ASSERT_EQ(-1, bthread_fd_timedwait(-1, EVFILT_READ, NULL));
 #endif
-CHECK_EQ(EINVAL, errno);
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    ASSERT_EQ(EINVAL, errno);
 
     int fds[2];
-    CHECK_EQ(0, pipe(fds));
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    ASSERT_EQ(0, pipe(fds));
 #if defined(OS_LINUX)
-std::cout << __FILE__ << ":" << __LINE__  << ", " << fds[0] << std::endl;
-// CHECK_EQ(-1, bthread_fd_wait(fds[0], EPOLLET));
-
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    CHECK_EQ(EINVAL, errno);
+    ASSERT_EQ(-1, bthread_fd_wait(fds[0], EPOLLET));
+    ASSERT_EQ(EINVAL, errno);
 #endif
-std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
     bthread_t th;
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
-    CHECK_EQ(0, bthread_start_urgent(&th, NULL, close_the_fd, &fds[1]));
+    ASSERT_EQ(0, bthread_start_urgent(&th, NULL, close_the_fd, &fds[1]));
     butil::Timer tm;
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
     tm.start();
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
 #if defined(OS_LINUX)
-CHECK_EQ(0, bthread_fd_wait(fds[0], EPOLLIN | EPOLLET));
+    ASSERT_EQ(0, bthread_fd_wait(fds[0], EPOLLIN | EPOLLET));
 #elif defined(OS_MACOSX)
-CHECK_EQ(0, bthread_fd_wait(fds[0], EVFILT_READ));
+    ASSERT_EQ(0, bthread_fd_wait(fds[0], EVFILT_READ));
 #endif
-std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-
     tm.stop();
-    CHECK_LT(tm.m_elapsed(), 20);
-    CHECK_EQ(0, bthread_join(th, NULL));
-    CHECK_EQ(0, bthread_close(fds[0]));
-    return nullptr;
-}
-
-TEST(FDTest, invalid_epoll_events) {
-    bthread_t tid;
-    auto tmp = bthread_start_urgent(&tid, nullptr, bthread_invalid_epoll_events, nullptr);
-    ASSERT_EQ(0, tmp);
-    ASSERT_EQ(0, bthread_join(tid, NULL));
+    ASSERT_LT(tm.m_elapsed(), 20);
+    ASSERT_EQ(0, bthread_join(th, NULL));
+    ASSERT_EQ(0, bthread_close(fds[0]));
 }
 
 void* wait_for_the_fd(void* arg) {
