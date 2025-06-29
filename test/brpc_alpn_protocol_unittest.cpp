@@ -47,7 +47,7 @@ public:
         response->set_message(request->message());
 
         brpc::Controller* cntl = static_cast<brpc::Controller*>(controller);
-        LOG(NOTICE) << "protocol:" << cntl->request_protocol();
+        LOG(INFO) << "protocol:" << cntl->request_protocol();
   }
 };
 
