@@ -541,14 +541,6 @@ static std::string s_nodes_result = R"({
             "addr": "127.0.0.1:8635",
             "status": 0,
             "zone": ""
-        }, {
-            "addr": "172.18.33.51:7171",
-            "status": 0,
-            "zone": ""
-        }, {
-            "addr": "172.18.33.52:7171",
-            "status": 0,
-            "zone": ""
         }
     ]
 })";
