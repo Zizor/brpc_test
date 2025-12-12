@@ -17,6 +17,8 @@
 
 // A client sending requests to server in batch every 1 second.
 
+#include <chrono>
+#include <cstddef>
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/channel.h>
@@ -70,11 +72,19 @@ int main(int argc, char* argv[]) {
     while (!brpc::IsAskedToQuit()) {
         butil::IOBuf msg1;
         msg1.append("abcdefghijklmnopqrstuvwxyz");
+        auto start = std::chrono::steady_clock::now();
         CHECK_EQ(0, brpc::StreamWrite(stream, msg1));
+        CHECK_EQ(0, brpc::StreamWait(stream, NULL));
+        auto end = std::chrono::steady_clock::now();
+        LOG(INFO) << "eplased " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "\n";
         butil::IOBuf msg2;
         msg2.append("0123456789");
+        start = std::chrono::steady_clock::now();
         CHECK_EQ(0, brpc::StreamWrite(stream, msg2));
-        sleep(1);
+        CHECK_EQ(0, brpc::StreamWait(stream, NULL));
+        end = std::chrono::steady_clock::now();
+        LOG(INFO) << "eplased " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "\n";
+        usleep(1);
     }
 
     CHECK_EQ(0, brpc::StreamClose(stream));

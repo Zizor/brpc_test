@@ -21,6 +21,7 @@
 #include <butil/logging.h>
 #include <butil/time.h>
 #include <brpc/channel.h>
+#include "butil/iobuf.h"
 #include "echo.pb.h"
 
 DEFINE_string(attachment, "", "Carry this along with requests");
@@ -50,6 +51,9 @@ int main(int argc, char* argv[]) {
         LOG(ERROR) << "Fail to initialize channel";
         return -1;
     }
+
+    butil::IOBuf buf;
+    buf.dec_ref();
 
     // Normally, you should not call a Channel directly, but instead construct
     // a stub Service wrapping it. stub can be shared by all threads as well.

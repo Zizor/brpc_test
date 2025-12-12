@@ -26,7 +26,7 @@
 #include <vector>
 
 #include "butil/macros.h"
-
+#include <cstdint>
 namespace bthread {
 
 // A container for storing identifiers that may be invalidated.
